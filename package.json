@@ -129,7 +129,6 @@
       ],
       "icon": "resources/icons/dentiva.ico",
       "artifactName": "${productName}-${version}-${arch}-${target}.${ext}",
-      "publisherName": "Md. Shohan Khan",
       "verifyUpdateCodeSignature": false
     },
     "nsis": {
