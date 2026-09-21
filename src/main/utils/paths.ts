@@ -28,6 +28,11 @@ export class DentivaPaths {
   }
 
   static fromElectron(): DentivaPaths {
+    // Packaged smoke tests use an isolated disposable workspace because Windows'
+    // known-folder API does not honour an APPDATA override consistently. The
+    // override is intentionally unavailable during normal application launches.
+    const smokeRoot=process.argv.includes('--smoke-test')?process.env.DENTIVA_SMOKE_DATA_DIR:undefined;
+    if(smokeRoot&&path.isAbsolute(smokeRoot))return new DentivaPaths(smokeRoot);
     // appData keeps clinical data outside replaceable program binaries. A dedicated
     // product folder also avoids coupling the data location to Electron's cache.
     return new DentivaPaths(path.join(app.getPath('appData'), 'Dentiva'));

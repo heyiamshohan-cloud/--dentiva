@@ -67,16 +67,16 @@ jobs:
       - name: Smoke-test unpacked application
         shell: pwsh
         run: |
-          $env:APPDATA = Join-Path $env:RUNNER_TEMP 'DentivaSmokeUnpacked'
+          $env:DENTIVA_SMOKE_DATA_DIR = Join-Path $env:RUNNER_TEMP 'DentivaSmokeUnpacked'
           $stdout = Join-Path $env:RUNNER_TEMP 'dentiva-unpacked-stdout.log'
           $stderr = Join-Path $env:RUNNER_TEMP 'dentiva-unpacked-stderr.log'
           $process = Start-Process -FilePath '.\dist\win-unpacked\Dentiva.exe' -ArgumentList '--smoke-test', '--enable-logging' -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
           if (-not $process.WaitForExit(90000)) { Stop-Process -Id $process.Id -Force; throw 'Unpacked Dentiva smoke test timed out.' }
-          $database = Join-Path $env:APPDATA 'Dentiva\Database\dentiva.db'
+          $database = Join-Path $env:DENTIVA_SMOKE_DATA_DIR 'Database\dentiva.db'
           $detectedDatabases = Get-ChildItem $env:RUNNER_TEMP -Filter dentiva.db -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
-          $diagnostics = @("APPDATA: $env:APPDATA", "Expected database: $database", "Exit code: $($process.ExitCode)", "Database present: $(Test-Path $database)", "Detected databases: $($detectedDatabases -join ', ')")
+          $diagnostics = @("Data directory: $env:DENTIVA_SMOKE_DATA_DIR", "Expected database: $database", "Exit code: $($process.ExitCode)", "Database present: $(Test-Path $database)", "Detected databases: $($detectedDatabases -join ', ')")
           $diagnostics += Get-Content $stdout, $stderr -ErrorAction SilentlyContinue
-          $diagnostics += Get-Content (Join-Path $env:APPDATA 'Dentiva\Logs\dentiva.log') -ErrorAction SilentlyContinue
+          $diagnostics += Get-Content (Join-Path $env:DENTIVA_SMOKE_DATA_DIR 'Logs\dentiva.log') -ErrorAction SilentlyContinue
           $diagnostics | Write-Host
           if ($process.ExitCode -ne 0 -or -not (Test-Path $database)) {
             $escaped = (($diagnostics | Select-Object -Last 20) -join "`n").Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
@@ -90,7 +90,7 @@ jobs:
           $version = (Get-Content package.json | ConvertFrom-Json).version
           $installer = ".\dist\Dentiva-$version-x64-nsis.exe"
           $installDir = Join-Path $env:RUNNER_TEMP 'DentivaInstalled'
-          $env:APPDATA = Join-Path $env:RUNNER_TEMP 'DentivaSmokeInstalled'
+          $env:DENTIVA_SMOKE_DATA_DIR = Join-Path $env:RUNNER_TEMP 'DentivaSmokeInstalled'
           $install = Start-Process -FilePath $installer -ArgumentList '/S', "/D=$installDir" -PassThru -Wait
           if ($install.ExitCode -ne 0) { throw "Installer failed with exit code $($install.ExitCode)." }
           $installedExe = Join-Path $installDir 'Dentiva.exe'
@@ -98,7 +98,7 @@ jobs:
           $app = Start-Process -FilePath $installedExe -ArgumentList '--smoke-test' -PassThru
           if (-not $app.WaitForExit(90000)) { Stop-Process -Id $app.Id -Force; throw 'Installed Dentiva smoke test timed out.' }
           if ($app.ExitCode -ne 0) { throw "Installed Dentiva smoke test failed with exit code $($app.ExitCode)." }
-          $database = Join-Path $env:APPDATA 'Dentiva\Database\dentiva.db'
+          $database = Join-Path $env:DENTIVA_SMOKE_DATA_DIR 'Database\dentiva.db'
           if (-not (Test-Path $database)) { throw 'Installed application did not initialise its database.' }
           $uninstaller = Join-Path $installDir 'Uninstall Dentiva.exe'
           if (-not (Test-Path $uninstaller)) { throw 'NSIS uninstaller is missing.' }
@@ -111,12 +111,12 @@ jobs:
         shell: pwsh
         run: |
           $version = (Get-Content package.json | ConvertFrom-Json).version
-          $env:APPDATA = Join-Path $env:RUNNER_TEMP 'DentivaSmokePortable'
+          $env:DENTIVA_SMOKE_DATA_DIR = Join-Path $env:RUNNER_TEMP 'DentivaSmokePortable'
           $portable = ".\dist\Dentiva-$version-x64-portable.exe"
           $process = Start-Process -FilePath $portable -ArgumentList '--smoke-test' -PassThru
           if (-not $process.WaitForExit(120000)) { Stop-Process -Id $process.Id -Force; throw 'Portable Dentiva smoke test timed out.' }
           if ($process.ExitCode -ne 0) { throw "Portable Dentiva smoke test failed with exit code $($process.ExitCode)." }
-          if (-not (Test-Path (Join-Path $env:APPDATA 'Dentiva\Database\dentiva.db'))) { throw 'Portable smoke test did not initialise the local database.' }
+          if (-not (Test-Path (Join-Path $env:DENTIVA_SMOKE_DATA_DIR 'Database\dentiva.db'))) { throw 'Portable smoke test did not initialise the local database.' }
 
       - name: Stage release and checksums
         run: npm run release
