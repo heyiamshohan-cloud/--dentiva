@@ -17,6 +17,7 @@ jobs:
     timeout-minutes: 60
     env:
       CI: 'true'
+      NO_COLOR: '1'
       ELECTRON_CACHE: ${{ github.workspace }}\.electron-cache
       ELECTRON_BUILDER_CACHE: ${{ github.workspace }}\.electron-builder-cache
     steps:
@@ -57,7 +58,8 @@ jobs:
             '```text' | Add-Content $env:GITHUB_STEP_SUMMARY
             $tail | Add-Content $env:GITHUB_STEP_SUMMARY
             '```' | Add-Content $env:GITHUB_STEP_SUMMARY
-            $escaped = ($tail -join "`n").Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            $diagnostic = $tail | Select-Object -Last 15
+            $escaped = ($diagnostic -join "`n").Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
             Write-Host "::error title=Windows packaging::$escaped"
             exit $exitCode
           }
