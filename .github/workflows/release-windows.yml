@@ -10,6 +10,8 @@ on:
         default: false
   pull_request:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
 
@@ -261,7 +263,10 @@ jobs:
   publish-github-release:
     name: Publish verified GitHub release
     needs: independent-release-verification
-    if: github.event_name == 'workflow_dispatch' && inputs.publish_release == true
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.publish_release == true) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'release: Dentiva 1.0.0')) ||
+      (github.event_name == 'push' && github.ref == 'refs/tags/v1.0.0')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -276,6 +281,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          if gh release view v1.0.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'Dentiva v1.0.0 is already published; verified assets were left unchanged.'
+            exit 0
+          fi
           cat > release-notes.md <<'EOF'
           Dentiva 1.0.0 is the first production Windows x64 release.
 
