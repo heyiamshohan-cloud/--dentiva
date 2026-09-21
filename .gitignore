@@ -1,0 +1,54 @@
+# Dependencies and package-manager caches
+node_modules/
+.npm/
+.cache/
+
+# Generated application output
+build/
+dist/
+out/
+release/artifacts/
+*.blockmap
+latest*.yml
+
+# Test and analysis output
+coverage/
+.vitest/
+*.tsbuildinfo
+
+# Local application data and databases
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.dentivabackup
+DentivaData/
+Attachments/
+Backups/
+Exports/
+Logs/
+Temp/
+Branding/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local binary/download caches
+.electron-cache/
+.electron-builder-cache/
+.downloads/
