@@ -128,10 +128,10 @@
         }
       ],
       "icon": "resources/icons/dentiva.ico",
-      "artifactName": "${productName}-${version}-${arch}-${target}.${ext}",
       "verifyUpdateCodeSignature": false
     },
     "nsis": {
+      "artifactName": "${productName}-${version}-${arch}-nsis.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,
@@ -144,6 +144,9 @@
       "uninstallerIcon": "resources/icons/dentiva.ico",
       "installerHeaderIcon": "resources/icons/dentiva.ico",
       "license": "LICENSE.txt"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-${arch}-portable.${ext}"
     },
     "linux": {
       "target": [
