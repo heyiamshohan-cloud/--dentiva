@@ -1,0 +1,112 @@
+name: Windows release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-package:
+    name: Build, test, and verify Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      CI: 'true'
+      ELECTRON_CACHE: ${{ github.workspace }}\.electron-cache
+      ELECTRON_BUILDER_CACHE: ${{ github.workspace }}\.electron-builder-cache
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=moderate
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run automated tests
+        run: npm test
+
+      - name: Build NSIS and portable packages
+        run: npm run pack:windows
+
+      - name: Smoke-test unpacked application
+        shell: pwsh
+        run: |
+          $env:APPDATA = Join-Path $env:RUNNER_TEMP 'DentivaSmokeUnpacked'
+          $process = Start-Process -FilePath '.\dist\win-unpacked\Dentiva.exe' -ArgumentList '--smoke-test' -PassThru
+          if (-not $process.WaitForExit(90000)) { Stop-Process -Id $process.Id -Force; throw 'Unpacked Dentiva smoke test timed out.' }
+          if ($process.ExitCode -ne 0) { throw "Unpacked Dentiva smoke test failed with exit code $($process.ExitCode)." }
+          if (-not (Test-Path (Join-Path $env:APPDATA 'Dentiva\Database\dentiva.db'))) { throw 'Smoke test did not initialise the empty local database.' }
+
+      - name: Test installer, installed startup, and uninstaller
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $installer = ".\dist\Dentiva-$version-x64-nsis.exe"
+          $installDir = Join-Path $env:RUNNER_TEMP 'DentivaInstalled'
+          $env:APPDATA = Join-Path $env:RUNNER_TEMP 'DentivaSmokeInstalled'
+          $install = Start-Process -FilePath $installer -ArgumentList '/S', "/D=$installDir" -PassThru -Wait
+          if ($install.ExitCode -ne 0) { throw "Installer failed with exit code $($install.ExitCode)." }
+          $installedExe = Join-Path $installDir 'Dentiva.exe'
+          if (-not (Test-Path $installedExe)) { throw 'Installed Dentiva.exe is missing.' }
+          $app = Start-Process -FilePath $installedExe -ArgumentList '--smoke-test' -PassThru
+          if (-not $app.WaitForExit(90000)) { Stop-Process -Id $app.Id -Force; throw 'Installed Dentiva smoke test timed out.' }
+          if ($app.ExitCode -ne 0) { throw "Installed Dentiva smoke test failed with exit code $($app.ExitCode)." }
+          $database = Join-Path $env:APPDATA 'Dentiva\Database\dentiva.db'
+          if (-not (Test-Path $database)) { throw 'Installed application did not initialise its database.' }
+          $uninstaller = Join-Path $installDir 'Uninstall Dentiva.exe'
+          if (-not (Test-Path $uninstaller)) { throw 'NSIS uninstaller is missing.' }
+          $uninstall = Start-Process -FilePath $uninstaller -ArgumentList '/S' -PassThru -Wait
+          if ($uninstall.ExitCode -ne 0) { throw "Uninstaller failed with exit code $($uninstall.ExitCode)." }
+          if (Test-Path $installedExe) { throw 'Uninstaller left the program executable behind.' }
+          if (-not (Test-Path $database)) { throw 'Uninstaller removed clinic data despite the retention policy.' }
+
+      - name: Smoke-test portable executable
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $env:APPDATA = Join-Path $env:RUNNER_TEMP 'DentivaSmokePortable'
+          $portable = ".\dist\Dentiva-$version-x64-portable.exe"
+          $process = Start-Process -FilePath $portable -ArgumentList '--smoke-test' -PassThru
+          if (-not $process.WaitForExit(120000)) { Stop-Process -Id $process.Id -Force; throw 'Portable Dentiva smoke test timed out.' }
+          if ($process.ExitCode -ne 0) { throw "Portable Dentiva smoke test failed with exit code $($process.ExitCode)." }
+          if (-not (Test-Path (Join-Path $env:APPDATA 'Dentiva\Database\dentiva.db'))) { throw 'Portable smoke test did not initialise the local database.' }
+
+      - name: Stage release and checksums
+        run: npm run release
+
+      - name: Verify release checksums
+        shell: pwsh
+        run: |
+          Push-Location release\artifacts
+          foreach ($line in Get-Content SHA256SUMS.txt) {
+            if ($line -notmatch '^([0-9a-f]{64})  (.+)$') { throw "Invalid checksum line: $line" }
+            $actual = (Get-FileHash -Algorithm SHA256 -Path $Matches[2]).Hash.ToLowerInvariant()
+            if ($actual -ne $Matches[1]) { throw "Checksum mismatch for $($Matches[2])" }
+          }
+          Pop-Location
+
+      - name: Upload verified release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dentiva-1.0.0-windows-x64
+          path: release/artifacts/*
+          if-no-files-found: error
+          retention-days: 30

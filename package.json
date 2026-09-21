@@ -1,0 +1,157 @@
+{
+  "name": "dentiva",
+  "productName": "Dentiva",
+  "version": "1.0.0",
+  "description": "Premium local-first dental practice management for Windows",
+  "author": "Md. Shohan Khan <helloiamshohan@gmail.com>",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "build/main/main.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently -k \"vite --host 0.0.0.0\" \"npm:dev:main\"",
+    "dev:main": "tsc -p tsconfig.main.json --watch",
+    "build": "npm run notices && npm run clean && npm run build:renderer && npm run build:main",
+    "notices": "node scripts/generate-notices.mjs",
+    "build:renderer": "vite build",
+    "build:main": "tsc -p tsconfig.main.json",
+    "clean": "node scripts/clean.mjs",
+    "typecheck": "tsc -p tsconfig.renderer.json --noEmit && tsc -p tsconfig.main.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:integration": "vitest run tests/integration",
+    "test:large": "vitest run tests/performance/large-dataset.test.ts --testTimeout=120000",
+    "test:all": "npm run typecheck && npm run test",
+    "start": "electron .",
+    "pack:linux": "npm run build && electron-builder --linux dir --x64",
+    "pack:windows": "npm run build && electron-builder --win nsis portable --x64",
+    "release": "node scripts/release.mjs"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/noto-sans-bengali": "^5.2.8",
+    "archiver": "^7.0.1",
+    "date-fns": "^4.1.0",
+    "i18next": "^25.5.2",
+    "lucide-react": "^0.544.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-i18next": "^15.7.3",
+    "yauzl": "^3.4.0",
+    "zod": "^4.1.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@types/archiver": "^6.0.3",
+    "@types/node": "^24.5.2",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@types/yauzl": "^2.10.3",
+    "@vitejs/plugin-react": "^5.0.3",
+    "concurrently": "^9.2.1",
+    "electron": "^44.4.3",
+    "electron-builder": "^26.0.12",
+    "eslint": "^9.36.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.44.1",
+    "vite": "^7.1.7",
+    "vitest": "^5.0.1"
+  },
+  "build": {
+    "appId": "com.dentiva.desktop",
+    "productName": "Dentiva",
+    "copyright": "Copyright © 2026 Md. Shohan Khan",
+    "asar": true,
+    "directories": {
+      "output": "dist",
+      "buildResources": "resources"
+    },
+    "files": [
+      "build/**/*",
+      "!build/**/*.map",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/icons/dentiva-256.png",
+        "to": "icons/dentiva-256.png"
+      },
+      {
+        "from": "resources/fonts",
+        "to": "fonts",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "docs",
+        "to": "docs",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "README.md",
+        "to": "README.md"
+      },
+      {
+        "from": "CHANGELOG.md",
+        "to": "CHANGELOG.md"
+      },
+      {
+        "from": "THIRD_PARTY_NOTICES.md",
+        "to": "THIRD_PARTY_NOTICES.md"
+      },
+      {
+        "from": "LICENSE.txt",
+        "to": "LICENSE.txt"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icons/dentiva.ico",
+      "artifactName": "${productName}-${version}-${arch}-${target}.${ext}",
+      "publisherName": "Md. Shohan Khan",
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Dentiva",
+      "uninstallDisplayName": "Dentiva",
+      "deleteAppDataOnUninstall": false,
+      "installerIcon": "resources/icons/dentiva.ico",
+      "uninstallerIcon": "resources/icons/dentiva.ico",
+      "installerHeaderIcon": "resources/icons/dentiva.ico",
+      "license": "LICENSE.txt"
+    },
+    "linux": {
+      "target": [
+        "dir"
+      ],
+      "category": "Office;MedicalSoftware",
+      "icon": "resources/icons/dentiva-512.png"
+    }
+  }
+}

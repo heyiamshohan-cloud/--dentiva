@@ -1,0 +1,15 @@
+import{useEffect,useRef,useState}from'react';
+import{CalendarDays,FileText,PackageSearch,Receipt,Search,Stethoscope,UserRound,UsersRound,X}from'lucide-react';
+import{useTranslation}from'react-i18next';
+import type{SearchResult}from'../../shared/types';
+import{useApp,type PageName}from'../context/AppContext';
+import{Badge,EmptyState,IconButton,LoadingState}from'./UI';
+
+const icons:Record<SearchResult['type'],React.ElementType>={patient:UserRound,appointment:CalendarDays,visit:Stethoscope,invoice:Receipt,document:FileText,staff:UsersRound,inventory:PackageSearch,expense:Receipt};
+const pages:Record<SearchResult['type'],PageName>={patient:'patients',appointment:'appointments',visit:'clinical',invoice:'billing',document:'documents',staff:'staff',inventory:'inventory',expense:'expenses'};
+export function GlobalSearch({open,onClose}:{open:boolean;onClose:()=>void}){const{t}=useTranslation();const{session,navigate}=useApp();const[query,setQuery]=useState('');const[results,setResults]=useState<SearchResult[]>([]);const[loading,setLoading]=useState(false);const input=useRef<HTMLInputElement>(null);
+  useEffect(()=>{if(open){setQuery('');setResults([]);window.setTimeout(()=>input.current?.focus(),20);}},[open]);
+  useEffect(()=>{if(!open||query.trim().length<2||!session){setResults([]);return;}const timeout=window.setTimeout(async()=>{setLoading(true);const response=await window.dentiva.search.global(session.token,query);if(response.ok)setResults(response.data??[]);setLoading(false);},220);return()=>window.clearTimeout(timeout);},[open,query,session]);
+  useEffect(()=>{const key=(event:KeyboardEvent)=>{if(open&&event.key==='Escape')onClose();};document.addEventListener('keydown',key);return()=>document.removeEventListener('keydown',key);},[open,onClose]);
+  if(!open)return null;return<div className="command-backdrop"onMouseDown={(event)=>{if(event.target===event.currentTarget)onClose();}}><section className="command-palette"role="dialog"aria-modal="true"aria-label={t('search.title')}><header><Search size={20}/><input ref={input}value={query}onChange={(event)=>setQuery(event.target.value)}placeholder={t('search.hint')}/><IconButton label={t('common.close')}icon={X}onClick={onClose}/></header><div className="command-results">{loading?<LoadingState/>:query.length<2?<div className="command-hint"><kbd>Ctrl</kbd><span>+</span><kbd>K</kbd><p>{t('search.hint')}</p></div>:results.length===0?<EmptyState compact icon={Search}title={t('search.noResults')}body={t('patients.search')}/>:results.map((result)=>{const Icon=icons[result.type];return<button key={`${result.type}-${result.id}`}onClick={()=>{navigate(pages[result.type],result.type==='patient'?{patientId:result.id}:{recordId:result.id});onClose();}}><span className="result-icon"><Icon size={18}/></span><span className="result-main"><b>{result.title}</b><small>{result.identifier} · {result.context}</small></span><Badge>{t(`search.${result.type}`)}</Badge></button>})}</div><footer><span>↑ ↓ {t('ui.navigate')}</span><span>Enter {t('ui.openKey')}</span><span>Esc {t('ui.closeKey')}</span></footer></section></div>;
+}

@@ -1,0 +1,127 @@
+DENTIVA END-USER LICENCE AGREEMENT
+Version 1.0 — 21 September 2026
+
+Copyright © 2026 Md. Shohan Khan. All rights reserved.
+
+PLEASE READ THIS AGREEMENT BEFORE INSTALLING OR USING DENTIVA. BY INSTALLING,
+COPYING, OR USING THE SOFTWARE, YOU ACCEPT THIS AGREEMENT. IF YOU DO NOT ACCEPT
+IT, DO NOT INSTALL OR USE THE SOFTWARE.
+
+1. DEFINITIONS
+
+“Dentiva” or “Software” means the Dentiva desktop application, its documentation,
+and related files distributed by or for the copyright owner. “You” means the
+individual or legal entity lawfully receiving the Software. “Clinic Data” means
+information entered, imported, generated, or stored by users through the Software.
+
+2. LICENCE GRANT
+
+Subject to payment of any applicable fees and compliance with this Agreement, the
+copyright owner grants You a limited, non-exclusive, non-transferable, revocable
+licence to install and use Dentiva for Your internal dental-clinic or practice
+operations on the number of devices/users authorised by Your purchase or written
+agreement. No ownership interest is transferred.
+
+3. RESTRICTIONS
+
+Except where applicable law expressly permits otherwise, You may not:
+
+(a) sell, sublicense, rent, lease, publish, redistribute, or make the Software
+    available to an unauthorised third party;
+(b) modify, adapt, translate, reverse engineer, decompile, disassemble, bypass,
+    or derive source code from the Software;
+(c) remove or alter copyright, attribution, licence, or technical notices;
+(d) use the Software to build or provide a competing hosted or distributed
+    product; or
+(e) use the Software for unlawful access, surveillance, discrimination, fraud,
+    or any activity that violates patient rights or professional obligations.
+
+You may make reasonable archival copies needed for authorised deployment and
+recovery, provided all notices remain intact.
+
+4. CLINICAL AND OPERATIONAL RESPONSIBILITY
+
+Dentiva is an administrative and record-keeping tool. It is not a medical device,
+diagnostic system, emergency service, substitute for professional judgement, or
+source of independently generated diagnosis, treatment, or prescription advice.
+Qualified clinicians must review and confirm all clinical content and decisions.
+You are solely responsible for patient identification, informed consent, clinical
+care, billing, tax/accounting treatment, retention, reporting, and compliance with
+applicable professional and legal requirements.
+
+5. DATA, PRIVACY, AND SECURITY
+
+As between You and the copyright owner, You retain responsibility for Clinic Data.
+Dentiva is designed to store operational data locally. You are responsible for
+lawful collection and processing; access control; Windows/device protection;
+physical security; encryption at rest where required; tested backups; secure
+exports and printed records; data-subject requests; retention; and incident
+response. You must not submit real patient data to support without an expressly
+agreed, lawful, secure process.
+
+Uninstalling Dentiva does not automatically delete Clinic Data. Secure deletion,
+when legally authorised, is Your responsibility.
+
+6. BACKUPS AND AVAILABILITY
+
+You must maintain multiple verified backups and periodically test restoration. No
+software, storage medium, or backup process is infallible. The copyright owner is
+not Your records custodian and cannot recover a forgotten backup-encryption
+password.
+
+7. THIRD-PARTY COMPONENTS
+
+Dentiva includes third-party open-source software and fonts governed by their own
+licences. Those components are not relicensed under this Agreement. Required
+notices are provided in THIRD_PARTY_NOTICES.md and, for the Electron runtime, its
+included licence/notices files. If a third-party licence grants rights broader than
+this Agreement for that component, that licence controls for that component only.
+
+8. UPDATES AND SUPPORT
+
+Updates and support, if any, are supplied under the applicable purchase, support,
+or written service terms. Installing an update may migrate the local database.
+Create and verify a backup before updating. Support cannot guarantee recovery from
+hardware failure, malware, unauthorised changes, unsupported storage, or absent or
+invalid backups.
+
+9. DISCLAIMER OF WARRANTY
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE SOFTWARE IS PROVIDED “AS
+IS” AND “AS AVAILABLE,” WITHOUT WARRANTIES OF ANY KIND, EXPRESS, IMPLIED, OR
+STATUTORY, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE,
+NON-INFRINGEMENT, ACCURACY, CONTINUITY, OR ERROR-FREE OPERATION. NOTHING IN THIS
+AGREEMENT EXCLUDES A WARRANTY OR RIGHT THAT CANNOT LAWFULLY BE EXCLUDED.
+
+10. LIMITATION OF LIABILITY
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE COPYRIGHT OWNER AND
+CONTRIBUTORS WILL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+PUNITIVE, OR CONSEQUENTIAL LOSS, OR FOR LOSS OF DATA, REVENUE, PROFIT, BUSINESS,
+GOODWILL, OR PATIENT OPPORTUNITY, ARISING FROM OR RELATED TO THE SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY. TOTAL AGGREGATE LIABILITY WILL NOT EXCEED THE AMOUNT
+YOU PAID FOR THE SOFTWARE DURING THE TWELVE MONTHS BEFORE THE EVENT GIVING RISE TO
+THE CLAIM. THESE LIMITATIONS DO NOT APPLY WHERE LIABILITY CANNOT LAWFULLY BE
+LIMITED.
+
+11. TERMINATION
+
+This licence terminates if You materially breach this Agreement. On termination,
+stop using and remove unauthorised copies of the Software, subject to lawful Clinic
+Data retention and transition obligations. Sections intended by their nature to
+survive termination will survive.
+
+12. GENERAL
+
+If a provision is unenforceable, it will be limited to the minimum extent required
+and the remainder will continue. Failure to enforce a provision is not a waiver.
+You may not transfer this Agreement without prior written consent, except as part
+of an authorised transfer expressly agreed in writing. Applicable mandatory law
+and any signed commercial agreement take precedence where they conflict with this
+standard licence.
+
+13. CONTACT
+
+Md. Shohan Khan
+Email: helloiamshohan@gmail.com
+WhatsApp: 01516591935
