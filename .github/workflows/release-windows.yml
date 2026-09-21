@@ -68,10 +68,20 @@ jobs:
         shell: pwsh
         run: |
           $env:APPDATA = Join-Path $env:RUNNER_TEMP 'DentivaSmokeUnpacked'
-          $process = Start-Process -FilePath '.\dist\win-unpacked\Dentiva.exe' -ArgumentList '--smoke-test' -PassThru
+          $stdout = Join-Path $env:RUNNER_TEMP 'dentiva-unpacked-stdout.log'
+          $stderr = Join-Path $env:RUNNER_TEMP 'dentiva-unpacked-stderr.log'
+          $process = Start-Process -FilePath '.\dist\win-unpacked\Dentiva.exe' -ArgumentList '--smoke-test', '--enable-logging' -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
           if (-not $process.WaitForExit(90000)) { Stop-Process -Id $process.Id -Force; throw 'Unpacked Dentiva smoke test timed out.' }
-          if ($process.ExitCode -ne 0) { throw "Unpacked Dentiva smoke test failed with exit code $($process.ExitCode)." }
-          if (-not (Test-Path (Join-Path $env:APPDATA 'Dentiva\Database\dentiva.db'))) { throw 'Smoke test did not initialise the empty local database.' }
+          $database = Join-Path $env:APPDATA 'Dentiva\Database\dentiva.db'
+          $diagnostics = @("Exit code: $($process.ExitCode)", "Database present: $(Test-Path $database)")
+          $diagnostics += Get-Content $stdout, $stderr -ErrorAction SilentlyContinue
+          $diagnostics += Get-Content (Join-Path $env:APPDATA 'Dentiva\Logs\dentiva.log') -ErrorAction SilentlyContinue
+          $diagnostics | Write-Host
+          if ($process.ExitCode -ne 0 -or -not (Test-Path $database)) {
+            $escaped = (($diagnostics | Select-Object -Last 20) -join "`n").Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Host "::error title=Unpacked smoke test::$escaped"
+            exit 1
+          }
 
       - name: Test installer, installed startup, and uninstaller
         shell: pwsh
