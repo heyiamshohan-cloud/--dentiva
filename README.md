@@ -83,7 +83,7 @@ npm run build
 npm run pack:windows
 ```
 
-The Windows package command creates NSIS and portable targets through `electron-builder`. Release automation is defined in `.github/workflows/release-windows.yml` and performs clean installation, security audit, checks, tests, build, packaging, checksums, and artifact upload on `windows-latest`.
+The Windows package command creates NSIS and portable targets through `electron-builder`. Release automation is defined in `.github/workflows/release-windows.yml` and performs clean installation, security audit, checks, tests, build, packaging, checksums, and artifact upload on `windows-latest`. A second clean Windows runner downloads that upload and independently repeats checksum, manifest, installer/uninstaller, portable executable, and extracted-ZIP verification before release publication is allowed.
 
 Useful commands:
 

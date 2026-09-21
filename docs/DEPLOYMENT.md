@@ -28,7 +28,7 @@ npm run pack:windows
 npm run release
 ```
 
-`npm run release` validates expected artifacts, copies release documentation, creates the portable directory ZIP, and writes SHA-256 sums. A failed command blocks release.
+`npm run release` validates expected artifacts, copies release documentation, creates the portable directory ZIP, and writes SHA-256 sums. A failed command blocks release. The release workflow then downloads the uploaded bundle on a separate clean Windows runner, recomputes its hashes and manifest, and repeats installer, uninstaller, portable executable, and extracted-ZIP startup checks. A maintainer can publish that independently verified bundle with the workflow’s explicit `publish_release` dispatch option.
 
 ## Expected artifact set
 

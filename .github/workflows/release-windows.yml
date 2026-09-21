@@ -2,6 +2,12 @@ name: Windows release
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: Publish the verified bundle as the v1.0.0 GitHub release
+        required: false
+        type: boolean
+        default: false
   pull_request:
   push:
     tags:
@@ -133,9 +139,148 @@ jobs:
           Pop-Location
 
       - name: Upload verified release bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: Dentiva-1.0.0-windows-x64
           path: release/artifacts/*
           if-no-files-found: error
           retention-days: 30
+
+  independent-release-verification:
+    name: Independently verify uploaded Windows release
+    needs: build-test-package
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Download uploaded release bundle
+        uses: actions/download-artifact@v5
+        with:
+          name: Dentiva-1.0.0-windows-x64
+          path: verified-release
+
+      - name: Verify artifact set, manifests, hashes, and Windows binaries
+        shell: pwsh
+        run: |
+          $root = (Resolve-Path verified-release).Path
+          $expected = @(
+            'Dentiva-1.0.0-x64-nsis.exe',
+            'Dentiva-1.0.0-x64-portable.exe',
+            'Dentiva-1.0.0-windows-x64-portable.zip',
+            'SHA256SUMS.txt',
+            'RELEASE_MANIFEST.json',
+            'README.md',
+            'USER_GUIDE.md',
+            'BACKUP_AND_RECOVERY.md',
+            'SECURITY.md',
+            'DEPLOYMENT.md',
+            'CHANGELOG.md',
+            'LICENSE.txt',
+            'THIRD_PARTY_NOTICES.md'
+          )
+          foreach ($name in $expected) {
+            if (-not (Test-Path (Join-Path $root $name) -PathType Leaf)) { throw "Release file is missing: $name" }
+          }
+          $actual = @(Get-ChildItem $root -File | Select-Object -ExpandProperty Name | Sort-Object)
+          $difference = Compare-Object ($expected | Sort-Object) $actual
+          if ($difference) { throw "Unexpected release artifact set: $($difference | Out-String)" }
+          Push-Location $root
+          foreach ($line in Get-Content SHA256SUMS.txt) {
+            if ($line -notmatch '^([0-9a-f]{64})  (.+)$') { throw "Invalid checksum line: $line" }
+            $actualHash = (Get-FileHash -Algorithm SHA256 -Path $Matches[2]).Hash.ToLowerInvariant()
+            if ($actualHash -ne $Matches[1]) { throw "Checksum mismatch for $($Matches[2])" }
+          }
+          $manifest = Get-Content RELEASE_MANIFEST.json -Raw | ConvertFrom-Json
+          if ($manifest.product -ne 'Dentiva' -or $manifest.version -ne '1.0.0' -or $manifest.target -ne 'windows-x64') { throw 'Release manifest identity is invalid.' }
+          if ($manifest.sourceCommit -ne $env:GITHUB_SHA) { throw "Release manifest source commit does not match $env:GITHUB_SHA." }
+          if ($manifest.unsigned -ne $true) { throw 'This workflow expected an explicitly marked unsigned release.' }
+          foreach ($artifact in $manifest.artifacts) {
+            $file = Get-Item $artifact.name
+            if ($file.Length -ne $artifact.sizeBytes) { throw "Manifest size mismatch for $($artifact.name)." }
+            $actualHash = (Get-FileHash -Algorithm SHA256 -Path $file.FullName).Hash.ToLowerInvariant()
+            if ($actualHash -ne $artifact.sha256) { throw "Manifest hash mismatch for $($artifact.name)." }
+          }
+          foreach ($executable in @('Dentiva-1.0.0-x64-nsis.exe', 'Dentiva-1.0.0-x64-portable.exe')) {
+            $stream = [System.IO.File]::OpenRead((Join-Path $root $executable))
+            try { if ($stream.ReadByte() -ne 0x4d -or $stream.ReadByte() -ne 0x5a) { throw "$executable is not a PE executable." } } finally { $stream.Dispose() }
+          }
+          Pop-Location
+
+      - name: Verify installer, portable executable, and portable ZIP on a clean runner
+        shell: pwsh
+        run: |
+          $root = (Resolve-Path verified-release).Path
+          function Invoke-DentivaSmoke([string]$executable, [string]$dataDirectory, [int]$timeoutMs) {
+            $env:DENTIVA_SMOKE_DATA_DIR = $dataDirectory
+            $process = Start-Process -FilePath $executable -ArgumentList '--smoke-test' -PassThru
+            if (-not $process.WaitForExit($timeoutMs)) { Stop-Process -Id $process.Id -Force; throw "Smoke test timed out: $executable" }
+            if ($process.ExitCode -ne 0) { throw "Smoke test failed with exit code $($process.ExitCode): $executable" }
+            if (-not (Test-Path (Join-Path $dataDirectory 'Database\dentiva.db'))) { throw "Smoke test database is missing: $executable" }
+          }
+          $installer = Join-Path $root 'Dentiva-1.0.0-x64-nsis.exe'
+          $installDir = Join-Path $env:RUNNER_TEMP 'DentivaIndependentInstall'
+          $installedData = Join-Path $env:RUNNER_TEMP 'DentivaIndependentInstalledData'
+          $install = Start-Process -FilePath $installer -ArgumentList '/S', "/D=$installDir" -PassThru -Wait
+          if ($install.ExitCode -ne 0) { throw "Independent installer test failed with exit code $($install.ExitCode)." }
+          $installedExe = Join-Path $installDir 'Dentiva.exe'
+          if (-not (Test-Path $installedExe)) { throw 'Independent installer test did not create Dentiva.exe.' }
+          Invoke-DentivaSmoke $installedExe $installedData 90000
+          $database = Join-Path $installedData 'Database\dentiva.db'
+          $uninstaller = Join-Path $installDir 'Uninstall Dentiva.exe'
+          $uninstall = Start-Process -FilePath $uninstaller -ArgumentList '/S' -PassThru -Wait
+          if ($uninstall.ExitCode -ne 0) { throw "Independent uninstaller test failed with exit code $($uninstall.ExitCode)." }
+          if (Test-Path $installedExe) { throw 'Independent uninstaller test left Dentiva.exe behind.' }
+          if (-not (Test-Path $database)) { throw 'Independent uninstaller test removed retained clinic data.' }
+          Invoke-DentivaSmoke (Join-Path $root 'Dentiva-1.0.0-x64-portable.exe') (Join-Path $env:RUNNER_TEMP 'DentivaIndependentPortableData') 180000
+          $expanded = Join-Path $env:RUNNER_TEMP 'DentivaIndependentZip'
+          Expand-Archive -Path (Join-Path $root 'Dentiva-1.0.0-windows-x64-portable.zip') -DestinationPath $expanded
+          $zipExe = Get-ChildItem $expanded -Filter Dentiva.exe -Recurse | Select-Object -First 1
+          if (-not $zipExe) { throw 'Portable ZIP does not contain Dentiva.exe.' }
+          if (-not (Test-Path (Join-Path $zipExe.DirectoryName 'resources\app.asar'))) { throw 'Portable ZIP does not contain the packaged application archive.' }
+          Invoke-DentivaSmoke $zipExe.FullName (Join-Path $env:RUNNER_TEMP 'DentivaIndependentZipData') 90000
+
+      - name: Record independent verification summary
+        shell: pwsh
+        run: |
+          $root = (Resolve-Path verified-release).Path
+          $manifest = Get-Content (Join-Path $root 'RELEASE_MANIFEST.json') -Raw | ConvertFrom-Json
+          '## Dentiva 1.0.0 independent release verification' | Add-Content $env:GITHUB_STEP_SUMMARY
+          '' | Add-Content $env:GITHUB_STEP_SUMMARY
+          '- Uploaded artifact downloaded on a fresh Windows runner' | Add-Content $env:GITHUB_STEP_SUMMARY
+          '- Exact 13-file release set verified' | Add-Content $env:GITHUB_STEP_SUMMARY
+          '- SHA-256 sums and release manifest independently recomputed' | Add-Content $env:GITHUB_STEP_SUMMARY
+          '- NSIS install, installed startup, uninstall, and retained-data policy passed' | Add-Content $env:GITHUB_STEP_SUMMARY
+          '- Portable executable and extracted portable ZIP startup passed' | Add-Content $env:GITHUB_STEP_SUMMARY
+          '- Release is intentionally unsigned; deploy only after normal Windows trust review' | Add-Content $env:GITHUB_STEP_SUMMARY
+          '' | Add-Content $env:GITHUB_STEP_SUMMARY
+          '| File | Bytes | SHA-256 |' | Add-Content $env:GITHUB_STEP_SUMMARY
+          '|---|---:|---|' | Add-Content $env:GITHUB_STEP_SUMMARY
+          foreach ($artifact in $manifest.artifacts) {
+            "| $($artifact.name) | $($artifact.sizeBytes) | ``$($artifact.sha256)`` |" | Add-Content $env:GITHUB_STEP_SUMMARY
+          }
+
+  publish-github-release:
+    name: Publish verified GitHub release
+    needs: independent-release-verification
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_release == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download independently verified bundle
+        uses: actions/download-artifact@v5
+        with:
+          name: Dentiva-1.0.0-windows-x64
+          path: verified-release
+
+      - name: Publish Dentiva 1.0.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > release-notes.md <<'EOF'
+          Dentiva 1.0.0 is the first production Windows x64 release.
+
+          The attached NSIS installer, portable executable, and portable ZIP were built from the recorded source commit and independently downloaded, checksum-verified, installed, launched, uninstalled, and checked for retained clinic data on clean GitHub-hosted Windows runners.
+
+          This release is intentionally unsigned. Verify `SHA256SUMS.txt` before use and expect Windows SmartScreen to show the standard unsigned-application warning.
+          EOF
+          gh release create v1.0.0 verified-release/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title 'Dentiva 1.0.0' --notes-file release-notes.md
