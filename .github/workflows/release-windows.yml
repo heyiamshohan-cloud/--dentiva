@@ -73,7 +73,8 @@ jobs:
           $process = Start-Process -FilePath '.\dist\win-unpacked\Dentiva.exe' -ArgumentList '--smoke-test', '--enable-logging' -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
           if (-not $process.WaitForExit(90000)) { Stop-Process -Id $process.Id -Force; throw 'Unpacked Dentiva smoke test timed out.' }
           $database = Join-Path $env:APPDATA 'Dentiva\Database\dentiva.db'
-          $diagnostics = @("Exit code: $($process.ExitCode)", "Database present: $(Test-Path $database)")
+          $detectedDatabases = Get-ChildItem $env:RUNNER_TEMP -Filter dentiva.db -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+          $diagnostics = @("APPDATA: $env:APPDATA", "Expected database: $database", "Exit code: $($process.ExitCode)", "Database present: $(Test-Path $database)", "Detected databases: $($detectedDatabases -join ', ')")
           $diagnostics += Get-Content $stdout, $stderr -ErrorAction SilentlyContinue
           $diagnostics += Get-Content (Join-Path $env:APPDATA 'Dentiva\Logs\dentiva.log') -ErrorAction SilentlyContinue
           $diagnostics | Write-Host
