@@ -47,19 +47,18 @@ jobs:
       - name: Build NSIS and portable packages
         shell: pwsh
         run: |
-          npm run pack:windows 2>&1 | Tee-Object -FilePath windows-package.log
+          cmd /d /s /c "npm run pack:windows > windows-package.log 2>&1"
           $exitCode = $LASTEXITCODE
+          $tail = Get-Content windows-package.log -Tail 80
+          $tail | Write-Host
           if ($exitCode -ne 0) {
-            $tail = Get-Content windows-package.log -Tail 80
             '## Windows packaging failure' | Add-Content $env:GITHUB_STEP_SUMMARY
             '' | Add-Content $env:GITHUB_STEP_SUMMARY
             '```text' | Add-Content $env:GITHUB_STEP_SUMMARY
             $tail | Add-Content $env:GITHUB_STEP_SUMMARY
             '```' | Add-Content $env:GITHUB_STEP_SUMMARY
-            foreach ($line in ($tail | Select-Object -Last 20)) {
-              $escaped = $line.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
-              Write-Host "::error title=Windows packaging::$escaped"
-            }
+            $escaped = ($tail -join "`n").Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Host "::error title=Windows packaging::$escaped"
             exit $exitCode
           }
 
